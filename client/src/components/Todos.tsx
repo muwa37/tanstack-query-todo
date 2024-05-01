@@ -1,19 +1,25 @@
 import { useIsFetching } from '@tanstack/react-query';
 import { SubmitHandler, useForm } from 'react-hook-form';
-import { useCreateTodo } from '../services/mutation';
+import { useCreateTodo, useUpdateTodo } from '../services/mutations';
 import { useTodos, useTodosIds } from '../services/queries';
 import { Todo } from '../types/todo';
 
 export default function Todos() {
+  const isFetching = useIsFetching();
   const todoIdsQuery = useTodosIds();
   const todosQueries = useTodos(todoIdsQuery.data);
   const createTodoMutation = useCreateTodo();
-  const isFetching = useIsFetching();
+  const updateTodoMutation = useUpdateTodo();
 
   const { register, handleSubmit } = useForm<Todo>();
 
   const onCreateTodoSubmitHandler: SubmitHandler<Todo> = data => {
     createTodoMutation.mutate(data);
+  };
+  const onMarkAsDoneHandler = (data: Todo | undefined) => {
+    if (data) {
+      updateTodoMutation.mutate({ ...data, checked: true });
+    }
   };
 
   return (
@@ -29,7 +35,11 @@ export default function Todos() {
         <br />
         <input placeholder='description' {...register('description')} />
         <br />
-        <input type='submit' />
+        <input
+          type='submit'
+          disabled={createTodoMutation.isPending}
+          value={createTodoMutation.isPending ? 'creating...' : 'create todo'}
+        />
       </form>
       <ul>
         {todoIdsQuery.data?.map(id => (
@@ -48,6 +58,11 @@ export default function Todos() {
                 <span>
                   <strong>description:</strong> {data?.description}
                 </span>
+              </div>
+              <div>
+                <button onClick={() => onMarkAsDoneHandler(data)}>
+                  {data?.checked ? 'done' : 'mark as done'}
+                </button>
               </div>
             </div>
           </li>
